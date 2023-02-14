@@ -7,3 +7,4 @@ This repository includes a Jupyter Notebook as well as a complete Geolog project
 
 >![Geolog_Image](NMR_log.gif)
 
+We also allow you to choose between SciPy optimization or SciPy Curve_fit methods for the T2 inversion. Both methods were mentioned by chatGPT, but so far I am having trouble using regularization with the SciPy Curve_fit technique. This is work to be completed, and any advice will be well received. 
