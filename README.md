@@ -15,4 +15,8 @@ We would suggest that you start with the Jupyter Notebook as a sort of help file
 
 >![Geolog_Image](Geolog_loglan.png)
 
+We are using SciPy’s optimization or least_squares methods to perform our T2 inversion. Both methods have a regularization term too. The image below shows the original T2 and then the new T2 Inversion results using least_squares with a regularization of 0.1. 
+
+>![Geolog_Image](results.png)
+
 Let us know if there are any issues. 
