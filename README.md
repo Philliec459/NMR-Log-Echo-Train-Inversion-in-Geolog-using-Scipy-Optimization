@@ -15,7 +15,7 @@ We would suggest that you start with the Jupyter Notebook as a sort of help file
 
 >![Geolog_Image](Geolog_loglan.png)
 
-We are using SciPy’s optimization or least_squares methods to perform our T2 inversion. Both methods have a regularization term too. The image below shows the original T2 and then the new T2 Inversion results using least_squares with a regularization of 0.1. 
+We are using SciPy’s optimization or least_squares methods to perform our T2 inversion. Both methods have a regularization term too. The following lines of code show how we call each method; least_squares, optimization and curve_fit that does not use regularization. 
 
 
       if method == 'least_squares' : 
@@ -35,8 +35,9 @@ We are using SciPy’s optimization or least_squares methods to perform our T2 i
             popt = result.x
         elif method == 'Curve_fit_simple' : 
             popt, pcov = curve_fit(func, xdata, ystack, method='trf', bounds=(0.05, [20, 20, 20, 20, 20, 20, 20, 20]))        
-        
-
+ 
+ The image below shows the original T2 distribution and then the new T2 Inversion results using least_squares with a regularization alpha of 0.1.
+ 
 >![Geolog_Image](results.png)
 
 Let us know if there are any issues. 
