@@ -17,6 +17,26 @@ We would suggest that you start with the Jupyter Notebook as a sort of help file
 
 We are using SciPy’s optimization or least_squares methods to perform our T2 inversion. Both methods have a regularization term too. The image below shows the original T2 and then the new T2 Inversion results using least_squares with a regularization of 0.1. 
 
+
+      if method == 'least_squares' : 
+            # Set the value of alpha
+            alpha = 0.1
+            # Set the initial parameter values
+            p0 = np.ones(8)
+            # Set the bounds
+            bounds = ([0]*8, [20]*8)
+            # Fit the data to the function with L2 regularization using scipy.optimize
+            result = least_squares(objective, p0, args=(xdata, ystack, alpha), bounds=bounds)
+            popt = result.x    
+        elif method == 'Optimize':
+            lambda_ = 0.1  #started with 0.1
+            p0 = np.ones(8)
+            result = minimize(obj_func, p0, args=(xdata, ystack, lambda_), method='L-BFGS-B', bounds=[(0, 20)]*8)
+            popt = result.x
+        elif method == 'Curve_fit_simple' : 
+            popt, pcov = curve_fit(func, xdata, ystack, method='trf', bounds=(0.05, [20, 20, 20, 20, 20, 20, 20, 20]))        
+        
+
 >![Geolog_Image](results.png)
 
 Let us know if there are any issues. 
