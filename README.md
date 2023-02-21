@@ -89,4 +89,8 @@ We also have all of this code as Geolog python loglans with a complete Geolog pr
 
 >![Geolog_Image](Geolog_loglan.png)
 
+There is also a Geolog layout to view the new T2 inversion results along with the original NMR log data to compare your results to. 
+
+>![Geolog_Image](results.png)
+
 Please let us know if there are any issues. 
