@@ -7,7 +7,7 @@ This repository includes a Jupyter Notebook as well as a complete Geolog project
 
 To create our echo train we are using the 8 bin porosities supplied with the NMR MRIL type of log to create an echo train with a TE of 1.2msec and 200 echoes. We then add random noise to create a realistic echo train as shown in the image below. It is common to stack the echoes to reduce some noise prior to the T2 inversion in this example.  
 
->![Geolog_Image](T2_inversion_phase.gif)
+>![Geolog_Image](NMR_log.gif)
 
 We allow you to choose between the SciPy least_squares, optimization or curve_fit methods for the T2 inversion. All methods were mentioned by chatGPT, but the SciPy least_squares method appears to be the best using the alpha regularization. An alpha of 0 is no regularization.  
 
@@ -39,5 +39,9 @@ We are using SciPy’s optimization or least_squares methods to perform our T2 i
  The image below shows the original T2 distribution and then the new T2 Inversion results using least_squares with a regularization alpha of 0.1.
  
 >![Geolog_Image](results.png)
+
+We have also attempted to create a more realistic echo train with real and imaginary channels, apply the phase correction for the final echo train and then perform the final T2 inversion. This is way out of my league and still trying to check the validity of this approach. 
+
+>![Geolog_Image](T2_inversion_phase.gif)
 
 Let us know if there are any issues. 
