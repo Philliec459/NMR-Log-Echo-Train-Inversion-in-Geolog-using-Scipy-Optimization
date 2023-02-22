@@ -31,7 +31,7 @@ where xdata is the time in msec for 200 echoes with a TE of 1.2 msec:
 
 and ydata is the echo train amplitudes.
 
-After that all we would really need to do is apply some form of T2 inversion of the new synthetic echo train with noise using some methods from SciPy. 
+After this then all we would really need to do is apply some form of T2 inversion of the new synthetic echo train with noise using some methods from SciPy. 
 
     '''
     -----------------------------------------------------------------------------------------------
@@ -59,7 +59,7 @@ After that all we would really need to do is apply some form of T2 inversion of 
         
 ![NMR_log](NMR_log.gif)
 
-However, we wanted to try to make this more realistic by first creating an echo train with real and imaginary data, and then using phase rotation to calculate a phase corrected echo train for the T2 inversion. We attempted to do this by using the following code:
+However, we wanted to try to make this more realistic by first creating an echo train with real and imaginary data, and then use phase rotation to calculate a phase corrected echo train for the T2 inversion. We attempted to do this by using the following code:
 
     # Calculate the echo train for each channel
     y_inphase = func(x, p1, p2, p3, p4, p5, p6, p7, p8)
@@ -83,13 +83,13 @@ However, we wanted to try to make this more realistic by first creating an echo 
 
 ![T2_inversion_phase](T2_inversion_phase.gif)
 
-We then stack the echo_train_real for better signal to noise and then perform the inversion using the same SciPy T2 inversion techniques as before. 
+We typically stack the echo_train_real for better signal to noise, and then perform the inversion using the same SciPy T2 inversion techniques as before. 
 
-We also have all of this code as Geolog python loglans with a complete Geolog project included in this repository. 
+Besides our Jupyter Notebooks, we also have this code as Geolog python loglans with a complete Geolog project included in this repository. 
 
 >![Geolog_Image](Geolog_loglan.png)
 
-There is also a Geolog layout to view the new T2 inversion results along with the original NMR log data to compare your results to. 
+There is a Geolog layout to view the new T2 inversion results along with the original NMR log data to compare your results. 
 
 >![Geolog_Image](results.png)
 
