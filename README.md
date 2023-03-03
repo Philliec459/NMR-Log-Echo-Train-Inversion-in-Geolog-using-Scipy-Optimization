@@ -1,27 +1,19 @@
 # NMR-Log-Echo-Train-Inversion-in-Geolog-using-Scipy-Optimization
-This repository employs NMR log echo train inversion using Scipy least_squares or optimization using Tikhonov regularization, which adds a penalty term equal to the sum of the squares of the parameters. 
+# NMR Echo Train processing and creation of an NMR log in Real-Time:
 
-We would like to thank Tim Putnam for introducing us to chatGPT. ChatGPT has become quite popular lately, so we decided to experiment with using this AI tool to perform NMR log T2 inversion using the SciPy least_squares and optimization libraries in Python with Tikhonov regularization, which incorporates a penalty term based on the sum of the squared parameters. Although the initial code provided by ChatGPT required some fine-tuning, it was a great starting point.
+This Jupyter Notebook uses the existing MRIL T2 bin porosities to create an NMR log echo train with random noise that is then used to test one of our 3 SciPy metods for T2 inversion. 
 
-This repository includes a Jupyter Notebook as well as a complete Geolog project with Geolog python loglans, layouts and Geolog project structure.  
+The T2 inversion methods developed in this notebook were developed with collaboration with chatGPT. We wanted to experiment with this AI tool to see if we could create the code to perform NMR log T2 inversion. We are using SciPy least_squares, optimization and curve_fit libraries in Python with Tikhonov regularization, which incorporates a penalty term based on the sum of the squared parameters. Although the initial code provided by ChatGPT required some fine-tuning, it was a great starting point.
 
-This Jupyter Notebook uses the existing MRIL T2 bin porosities to create an NMR log echo train with introduced noise that we will then be used for the T2 inversion. 
+Our [repository on GitHub](https://github.com/Philliec459/NMR-Log-Echo-Train-Inversion-in-Geolog-using-Scipy-Optimization) also includes a complete Geolog project with Geolog python loglans to perform the same process as used in this notebook.
 
-This T2 inversion method was developed in collaboration with chatGPT which has become quite popular lately, so I decided to experiment with using this AI tool to perform this NMR log T2 inversion using the SciPy optimization library in Python with Tikhonov regularization, which incorporates a penalty term based on the sum of the squared parameters. Although the initial code provided by ChatGPT required some fine-tuning, it was a great starting point.
-
-The repository on GitHub also includes a complete Geolog project with Geolog python loglans to complete the same process.
-
-The process starts with the existing bin porosities for a MRIL C tool well where we create an echo train with the multi-exponential decay rate shown in the function below:
+The process starts with creating an echo train with random noise from the existing bin porosities from a MRIL C tool job using the multi-exponential decay rate defined by the function below:
 
     def func(x,p1,p2,p3,p4,p5,p6,p7,p8):
     return (p1*np.exp(-x/4)+p2*np.exp(-x/8)+p3*np.exp(-x/16)+p4*np.exp(-x/32)+p5*np.exp(-x/64)+p6*np.exp(-x/128)+p7*np.exp(-x/256)+p8*np.exp(-x/512))
 
-In essence we could just add noise to this 
 
-    y_noise  = noise * np.random.normal(size=xdata.size)
-    ydata = y + y_noise
-
-where xdata is the time in msec for 200 echoes with a TE of 1.2 msec:
+The time axis, xdata, is in msec for 200 echoes with a TE of 1.2 msec:
 
     # create x array with 200 elements
     num_echoes = 200
@@ -29,9 +21,12 @@ where xdata is the time in msec for 200 echoes with a TE of 1.2 msec:
     x = np.arange(num_echoes) * TE
     xdata = x
 
-and ydata is the echo train amplitudes.
+We add random noise to this echo train using the code below: 
 
-After this then all we would really need to do is apply some form of T2 inversion of the new synthetic echo train with noise using some methods from SciPy. 
+    y_noise  = noise * np.random.normal(size=xdata.size)
+    ydata = y + y_noise
+
+We then apply our T2 inversion using this synthetic echo train with noise employing one of the 3 methods from SciPy shown below: 
 
     '''
     -----------------------------------------------------------------------------------------------
@@ -59,38 +54,38 @@ After this then all we would really need to do is apply some form of T2 inversio
         
 ![NMR_log](NMR_log.gif)
 
-However, we wanted to try to make this more realistic by first creating an echo train with real and imaginary data, and then use phase rotation to calculate a phase corrected echo train for the T2 inversion. We attempted to do this by using the following code:
 
-    # Calculate the echo train for each channel
-    y_inphase = func(x, p1, p2, p3, p4, p5, p6, p7, p8)
-    y_quadrature = func(x+T2_times[-1]*3/4, p1, p2, p3, p4, p5, p6, p7, p8)
+### Channel X and Y Data
+In an attempt to make this more realistic, we created our own Channel X and Channel Y data from the original echo train (ydata) using our pre-defined phase rotation values in radians to calculate the X and Y data. We then again use phase rotation correction to create a phase corrected echo train for the T2 inversion similar to what we might do with the channel echo train data on a typical MRIL run well using the following code:
 
-    # Add noise to each channel
-    noise_level = 1.5
-    y_with_noise_inphase = y_inphase + noise_level * np.random.normal(size=y_inphase.shape)
-    y_with_noise_quadrature = y_quadrature + noise_level * np.random.normal(size=y_quadrature.shape)
+### Calculate a pseudo X and Y channle data bassed on the phase_angle_radian and the origial echo train ydata
 
-    # Calculate phase angle
-    phase_angle = np.arctan2(np.imag(y_with_noise_inphase) - np.imag(y_with_noise_quadrature), np.real(y_with_noise_inphase) - np.real(y_with_noise_quadrature))
+#### [We are using phase angles in radians](https://en.wikipedia.org/wiki/Radian).
+    
+![Geolog](radians.gif)  
 
-    # Apply phase rotation to quadrature channel
-    y_imaginary = y_with_noise_quadrature * np.exp(-1j * phase_angle)
 
-    # Combine real and imaginary channels to create final echo train
-    echo_train_real = y_with_noise_inphase + np.real(y_imaginary)
-    echo_train_imaginary = np.imag(y_imaginary)
-    ydata = echo_train_real
+Rotate the initial echo train to create X and Y component data:
+
+    Channel_X = ydata * np.cos(phase_angle_rad) # Echo train real
+    Channel_Y = ydata * np.sin(phase_angle_rad)  # Quadrature channel
+
+and then re-apply the phase rotation to create a new echo train for the T2 inversion:
+
+    echo_train_real = np.real(Channel_X) / np.cos(phase_angle_rad)
+    echo_train_imag = np.imag(Channel_Y) / np.sin(phase_angle_rad)
+
 
 ![T2_inversion_phase](T2_inversion_phase.gif)
 
-We typically stack the echo_train_real for better signal to noise, and then perform the inversion using the same SciPy T2 inversion techniques as before. 
+Prior to T2 inversion, we typically stack the echo_train_real for better signal to noise, and then apply one of the 3 SciPy inversion techniques as shown above. 
 
-Besides our Jupyter Notebooks, we also have this code as Geolog python loglans with a complete Geolog project included in this repository. 
+We also have all of this code as [Geolog python loglans with a complete Geolog project included in our GitHub repository](https://github.com/Philliec459/NMR-Log-Echo-Train-Inversion-in-Geolog-using-Scipy-Optimization).
 
->![Geolog_Image](Geolog_loglan.png)
+![Geolog_Image](Geolog_loglan.png)
 
-There is a Geolog layout to view the new T2 inversion results along with the original NMR log data to compare your results. 
+In this project there is a Geolog layout to view the new T2 inversion results along with the original NMR log data to compare the results.
 
->![Geolog_Image](results.png)
+![Geolog_Image](results.png)
 
-Please let us know if there are any issues. 
+Please let us know if there are any issues.
