@@ -1,0 +1,354 @@
+#!/usr/bin/env python3
+# python loglan
+# When referencing Geolog variables in a Python script, names must always be lower case.
+
+# Imports
+import geolog
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from scipy.optimize import minimize
+from scipy.optimize import curve_fit
+from scipy.optimize import least_squares
+
+
+#%matplotlib tk
+
+
+# Load data from geolog
+while geolog.gettable():
+
+
+    # Put your code here !!!
+
+
+    df = pd.DataFrame({'depth':depth, 'p1':p1, 'p2':p2,'p3':p3, 'p4':p4,'p5':p5, 'p6':p6,'p7':p7, 'p8':p8 })
+
+
+    def func(x,p1,p2,p3,p4,p5,p6,p7,p8):
+        return (p1*np.exp(-x/4)+p2*np.exp(-x/8)+p3*np.exp(-x/16)+p4*np.exp(-x/32)+p5*np.exp(-x/64)+p6*np.exp(-x/128)+p7*np.exp(-x/256)+p8*np.exp(-x/512))
+
+
+    def obj_func(params, x, y, lambda_):
+        p1, p2, p3, p4, p5, p6, p7, p8 = params
+        residuals = y - func(x, p1, p2, p3, p4, p5, p6, p7, p8)
+        regularization = lambda_ * (p1**2 + p2**2 + p3**2 + p4**2 + p5**2 + p6**2 + p7**2 + p8**2)
+        return np.sum(residuals**2) + regularization
+    
+    # Define the objective function to be minimized, including a regularization term
+    def objective(p, x, y, alpha):
+        y_pred = func(x, *p)
+        error = y - y_pred
+        regularization_term = alpha * np.sum(np.square(p))
+        return np.concatenate([error, np.sqrt(alpha) * p])
+    
+
+    ''' Choose the phase angle that you want:
+
+    phase_angle = np.pi/2 sets the variable phase_angle to the value of pi/2, 
+    which is approximately 1.5707963267948966 radians or 90 degrees.
+
+    phase_angle = np.pi/4 sets the variable phase_angle to the value of pi/4, 
+    which is approximately 0.7853981633974483 radians or 45 degrees.
+
+    phase_angle = np.pi/6 sets the variable phase_angle to the value of pi/6, 
+    which is approximately 0.5235987755982988 radians or 30 degrees.
+
+    phase_angle = np.pi/8 sets the variable phase_angle to the value of pi/8, 
+    which is approximately 0.39269908169872414 radians or 22.5 degrees.
+    '''
+    
+    '''Enter the phase anlge in radians'''
+    # Choose a phase angle
+    phase_angle_rad = np.pi/6
+    print('phase_angle_rad used in this analysis =',round(phase_angle_rad,2))
+    phase_angle_deg = np.rad2deg(phase_angle_rad)
+    print('phase_angle_deg used in this analysis =',round(phase_angle_deg,2))
+    print()
+
+
+        
+    deptharray=[]
+    mphi = []    
+    mbvi = []
+    mffi = []    
+    echo  = []
+    echo_out = []
+    fit   = []
+    ystack= []
+    T21   = []
+    T22   = []
+    optbins = []
+    depth3 = []
+    mperm = []
+
+
+    # Load log data from df
+    for index, row in df.iterrows():
+
+    #for k in range(0,len(df) ,1):
+        depth2=depth[index]      
+        P0=0
+        P1=p1[index]
+        P2=p2[index]
+        P3=p3[index]
+        P4=p4[index]
+        P5=p5[index]
+        P6=p6[index]
+        P7=p7[index]
+        P8=p8[index]
+        P9=0
+    
+        #depth=depth
+        bins=[P0,P1,P2,P3,P4,P5,P6,P7,P8,P9]
+        
+        pp1 = P1
+        pp2 = P2
+        pp3 = P3
+        pp4 = P4
+        pp5 = P5
+        pp6 = P6
+        pp7 = P7
+        pp8 = P8 
+    
+        # Define the T2 times
+        T2_times = np.array([4, 8, 16, 32, 64, 128, 256, 512])
+
+
+        #Define the data to be fit with some noise:
+        '''
+        #This is the xdata for TE (1.2 msec) x number of echoes for 240 msec of echo train data
+        '''
+        # create x array with 200 elements
+        #num_echoes = 200
+        #TE = 1.2  # echo spacing (ms)
+        x = np.arange(num_echoes) * te
+        #xdata = np.linspace(0, 240, 201)
+        xdata = x
+
+
+        '''
+            Calculate Echo Train data using xdata and func for echo train equation
+        '''
+        y = func(xdata,P1, P2, P3,  P4, P5, P6,  P7,  P8)
+
+        '''
+            add noise to the echo train data to create a typical echo train
+        '''
+        y_noise  = noise_level * np.random.normal(size=xdata.size)
+        ydata = y + y_noise
+    
+    
+        ''' Calculate a pseudo X and Y channle data bassed on the phase_angle_radian and the origial echo train ydata'''
+        # Rotate the noise echo train to create real and imaginary components
+        Channel_X = ydata * np.cos(phase_angle_rad) # Echo train real
+        #print('np.cos(phase_angle_rad) =',round(np.cos(phase_angle_rad),2))
+        Channel_Y = ydata * np.sin(phase_angle_rad)  # Quadrature channel
+    
+        # Combine real and imaginary channels to create final echo train
+        echo_train_real = np.real(Channel_X) / np.cos(phase_angle_rad)    
+    
+        # Apply phase rotation to quadrature channel
+        #y_imaginary = y_with_noise_quadrature * np.exp(-1j * phase_angle)
+        echo_train_imag = np.imag(Channel_Y) / np.sin(phase_angle_rad)
+        #echo_train_imag = Channel_Y * np.exp(-1j * (phase_angle_rad))
+
+  
+        #ydata = y + y_noise
+        ydata = echo_train_real
+    
+        '''
+          Store Echo Trains in np array
+        '''
+        echo.append(ydata)
+        #yecho = pd.DataFrame(echo)  
+        #yecho = echo
+
+        ''' This is stacking of echo trains for better S/N'''
+        if index > stack_levels -1:
+
+            if stack_levels == 1:           
+                ystack = ydata
+            else:
+                for k in range(1,stack_levels): 
+
+                    if stack_levels == 2:
+                        ystack = (echo[index-1]+echo[index])/stack_levels                 
+                    elif stack_levels == 3:
+                        ystack = (echo[index-2]+echo[index-1]+echo[index])/stack_levels
+                    elif stack_levels ==4:
+                        ystack = (echo[index-3]+echo[index-2]+echo[index-1]+echo[index])/stack_levels
+                    elif stack_levels == 5:
+                        ystack = (echo[index-4]+echo[index-3]+echo[index-2]+echo[index-1]+echo[index])/stack_levels
+                    elif stack_levels == 6:
+                        ystack = (echo[index-5]+echo[index-4]+echo[index-3]+echo[index-2]+echo[index-1]+echo[index])/stack_levels    
+                    elif stack_levels == 7:
+                        ystack = (echo[index-6]+echo[index-5]+echo[index-4]+echo[index-3]+echo[index-2]+echo[index-1]+echo[index])/stack_levels    
+                    elif stack_levels == 8:
+                        ystack = (echo[index-7]+echo[index-6]+echo[index-5]+echo[index-4]+echo[index-3]+echo[index-2]+echo[index-1]+echo[index])/stack_levels    
+                    elif stack_levels == 9:
+                        ystack = (echo[index-8]+echo[index-7]+echo[index-6]+echo[index-5]+echo[index-4]+echo[index-3]+echo[index-2]+echo[index-1]+echo[index])/stack_levels    
+
+                    else:
+                        print('Stack Levels out of bounds')
+           
+
+            '''
+            -----------------------------------------------------------------------------------------------
+              Optimization using SciPy with regularization: 
+            -----------------------------------------------------------------------------------------------
+            '''
+            # Fit the function to the data with regularization
+            bnds = [(0, 20)]*8
+            
+            if method == 'least_squares' : 
+                # Set the value of alpha
+                alpha = alpha
+                # Set the initial parameter values
+                p0 = np.ones(8)
+                bounds = ([0]*8, [20]*8)
+                # Fit the data to the function with L2 regularization using scipy.optimize
+                result = least_squares(objective, p0, args=(xdata, ystack, alpha), bounds=bounds)
+                popt = result.x
+            elif method == 'Optimize':
+                lambda_ = alpha  #started with 0.1
+                p0 = np.ones(8)
+                result = minimize(obj_func, p0, args=(xdata, ystack, lambda_), method='L-BFGS-B', bounds=[(0, 20)]*8)
+                popt = result.x
+            elif method == 'Curve_fit_simple' : 
+                #lambda_ = lambda_
+                #p0 = np.ones(8)
+                #popt, pcov = curve_fit(obj_func, p0, y_data, args=(xdata, lambda_))
+                popt, pcov = curve_fit(func, xdata, ystack, method='trf', bounds=(0.05, [20, 20, 20, 20, 20, 20, 20, 20]))        
+                #popt, pcov = curve_fit(obj_func, p0, xdata, ystack, lambda_ ,bounds= (0.05, [20, 20, 20, 20, 20, 20, 20, 20]))        
+ 
+
+            #print("Inversion Porosities:" , popt)
+
+
+
+
+            ''' Calculate BVI, MFFI and MPHI '''
+            mbvi.append(popt[0]+popt[1]+popt[2]+0.044*popt[3])    
+            mphi.append(popt[0]+popt[1]+popt[2]+popt[3]+popt[4]+popt[5]+popt[6]+popt[7])
+            mffi.append((1-0.044)*popt[3]+popt[4]+popt[5]+popt[6]+popt[7])
+            
+            depth3.append(depth2)
+
+            multiplier = (1 - level_spacing)/2
+            deptharray.append(depth - (stack_levels-1)/2 + multiplier*(stack_levels-1))
+            
+            #print('Depth3 =',depth3,'MPHI =',mphi)
+
+
+            optbins.append([P0,popt[0],popt[1],popt[2],popt[3],popt[4],popt[5],popt[6],popt[7], P9])
+            T2       = [    2,  4,      8,      16,     32,     64,     128,     256,   512,   1024]
+            bins     = [    P0, P1,     P2,     P3,     P4,     P5,      P6,      P7,    P8,    P9]
+            opt      = ([P0,popt[0],popt[1],popt[2],popt[3],popt[4],popt[5],popt[6],popt[7], P9])
+
+            '''
+            Store Fit and Echo Trains in np array
+            '''
+            echo_out.append(ystack)
+            fit.append(func(xdata, *popt))
+
+
+
+
+            '''
+            --------------------------------------------------------------------------------------------------
+            Plot Echo Train, T2 Dist and NMR Inversion MPHI and MBVI log data:
+            --------------------------------------------------------------------------------------------------
+            '''
+            for p in range(1):
+                p=0
+
+                fig, ax = plt.subplots(1,4,figsize=(15,4))      
+                updated_x = xdata
+                updated_y = ystack
+                updated_yfit = func(xdata, *popt)
+                
+                ax[0].plot(updated_x,ydata      ,c='green',linewidth=1  , label='Initial Echo Train')
+                ax[0].plot(updated_x,Channel_X ,c='red'  ,linewidth=1  , label='Channel_X') 
+                ax[0].plot(updated_x,Channel_Y ,c='blue' ,linewidth=2  , label='Channel_Y') 
+                ax[0].set_xlim(0,250)
+                ax[0].set_ylim(-5,30)
+                ax[0].set_ylabel('Amplitude (pu)')
+                ax[0].set_xlabel('Time (msec)')
+                ax[0].set_title('Phase Corrections, no stacking')
+                ax[0].legend(loc='upper right')
+                ax[0].grid()
+                
+                
+                ax[1].plot(updated_x,updated_y    , c='green', linewidth=1  , label='Phase Corrected Echo Train')
+                ax[1].plot(updated_x,updated_yfit , c='red'  , linewidth=3  , label='Fit')
+                ax[1].set_xlim(0,250)
+                ax[1].set_ylim(-5,35)
+                #ax[1].set_ylabel('Amplitude (pu)')
+                ax[1].set_xlabel('Time (msec)')
+                ax[1].set_title('Stacked Echo Train')
+                ax[1].legend(loc='upper right')
+                ax[1].grid()
+                
+                
+                ax[2].semilogx(T2,bins   ,c='green', linewidth=1, label = 'Original Bin Porosities')
+                ax[2].semilogx(T2,opt    ,c='red'  , linewidth=3, label = 'T2 Inversion Bin Porosities')
+                #ax[2].semilogx(33,0.0 ,'k*')
+                ax[2].set_xlim(2,1024)
+                ax[2].set_ylim(0,20)
+                #ax[2].set_ylabel('Bin Porosity (pu)')
+                ax[2].set_xlabel('T2 (msec)')
+                ax[2].set_title('T2 Distribution')
+                ax[2].axvspan(2,33   ,alpha=0.2,color='blue',label='BVI')
+                ax[2].axvspan(33,1024,alpha=0.5,color='yellow',label='FFI')
+                ax[2].legend()
+                ax[2].grid()
+
+                #ax[3].plot(mphi_in,depth ,alpha=0.4, c='red')
+                #ax[3].plot(mbvi_in,depth ,alpha=0.4, c='blue',linewidth=2)
+                ax[3].plot(mphi,depth3 ,c='red',linewidth=1)
+                ax[3].plot(mbvi,depth3 ,c='blue',linewidth=1)
+                ax[3].set_xlim(50,0)
+                ax[3].set_ylim(max(depth),min(depth))
+                #ax[3].set_ylabel('Depth)')
+                ax[3].set_xlabel('Porosity')
+                ax[3].set_title('NMR Log using 33ms T2 Cutoff')
+                ax[3].fill_betweenx(depth3, mphi, 0,  color='yellow', alpha=0.6, label='FFI')   
+                ax[3].fill_betweenx(depth3, mbvi, 0,  color='blue'  , alpha=0.6, label='BVI')    
+                ax[3].legend(loc='upper left')
+                ax[3].grid()
+
+                plt.draw()  
+                updated_x = xdata
+                updated_y = ystack
+                updated_yfit = func(xdata, *popt)
+                plt.pause(0.01)
+                #fig.clear()
+                plt.close(fig)
+                #fig.clf()
+
+
+    #find line of best fit
+    a, b = np.polyfit(Channel_X, Channel_Y, 1)
+    #plt.plot(Channel_X, a*Channel_X + b,color='black', linestyle='--', linewidth=3)        
+    #plt.text(1, 17, 'y = ' + '{:.2f}'.format(b) + ' + {:.2f}'.format(a) + ' * x')
+    #phase_angle_deg = round(np.rad2deg(np.arctan(a)),1)
+    #print('phase_angle used =', round(np.rad2deg(phase_angle_rad),1),', phase_angle_rad used =',round(phase_angle_rad,2))
+    print('phase_angle calc at end =', round(np.rad2deg(np.arctan(a)),1),', phase_angle_rad calc at end =',round(np.arctan(a),2))
+    print()
+
+
+    # Store data into geolog
+    geolog.puttable()
+
+
+
+
+
+
+
+
+
+
+
